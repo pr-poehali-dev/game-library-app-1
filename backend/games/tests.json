@@ -1,0 +1,30 @@
+{
+  "tests": [
+    {
+      "name": "Get games catalog",
+      "method": "GET",
+      "path": "/?action=catalog",
+      "expectedStatus": 200,
+      "expectedBody": [
+        {
+          "id": "number",
+          "title": "string",
+          "platform": "string"
+        }
+      ],
+      "bodyMatcher": "partial"
+    },
+    {
+      "name": "Search games by title",
+      "method": "GET",
+      "path": "/?action=catalog&search=cyber",
+      "expectedStatus": 200,
+      "expectedBody": [
+        {
+          "title": "string"
+        }
+      ],
+      "bodyMatcher": "partial"
+    }
+  ]
+}

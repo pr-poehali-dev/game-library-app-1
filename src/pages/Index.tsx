@@ -1,54 +1,110 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import Icon from '@/components/ui/icon';
-
-interface Game {
-  id: number;
-  title: string;
-  platform: 'PC' | 'Mobile' | 'VR';
-  genre: string;
-  image: string;
-  rating: number;
-  inLibrary: boolean;
-}
-
-const mockGames: Game[] = [
-  { id: 1, title: 'Cyberpunk 2077', platform: 'PC', genre: 'RPG', image: 'https://via.placeholder.com/300x400/9b87f5/ffffff?text=Cyberpunk+2077', rating: 4.5, inLibrary: false },
-  { id: 2, title: 'Elden Ring', platform: 'PC', genre: 'Action RPG', image: 'https://via.placeholder.com/300x400/7E69AB/ffffff?text=Elden+Ring', rating: 4.8, inLibrary: false },
-  { id: 3, title: 'God of War', platform: 'PC', genre: 'Action', image: 'https://via.placeholder.com/300x400/9b87f5/ffffff?text=God+of+War', rating: 4.9, inLibrary: true },
-  { id: 4, title: 'The Witcher 3', platform: 'PC', genre: 'RPG', image: 'https://via.placeholder.com/300x400/6E59A5/ffffff?text=The+Witcher+3', rating: 4.9, inLibrary: false },
-  { id: 5, title: 'Red Dead Redemption 2', platform: 'PC', genre: 'Action', image: 'https://via.placeholder.com/300x400/9b87f5/ffffff?text=RDR+2', rating: 4.8, inLibrary: false },
-  { id: 6, title: 'Half-Life: Alyx', platform: 'VR', genre: 'Action', image: 'https://via.placeholder.com/300x400/7E69AB/ffffff?text=Half-Life+Alyx', rating: 4.9, inLibrary: false },
-  { id: 7, title: 'Beat Saber', platform: 'VR', genre: 'Rhythm', image: 'https://via.placeholder.com/300x400/9b87f5/ffffff?text=Beat+Saber', rating: 4.7, inLibrary: true },
-  { id: 8, title: 'PUBG Mobile', platform: 'Mobile', genre: 'Battle Royale', image: 'https://via.placeholder.com/300x400/6E59A5/ffffff?text=PUBG+Mobile', rating: 4.3, inLibrary: false },
-  { id: 9, title: 'Genshin Impact', platform: 'Mobile', genre: 'RPG', image: 'https://via.placeholder.com/300x400/9b87f5/ffffff?text=Genshin+Impact', rating: 4.5, inLibrary: false },
-  { id: 10, title: 'Minecraft', platform: 'PC', genre: 'Sandbox', image: 'https://via.placeholder.com/300x400/7E69AB/ffffff?text=Minecraft', rating: 4.8, inLibrary: true },
-  { id: 11, title: 'Among Us', platform: 'Mobile', genre: 'Party', image: 'https://via.placeholder.com/300x400/6E59A5/ffffff?text=Among+Us', rating: 4.4, inLibrary: false },
-  { id: 12, title: 'Resident Evil 4 VR', platform: 'VR', genre: 'Horror', image: 'https://via.placeholder.com/300x400/9b87f5/ffffff?text=RE4+VR', rating: 4.6, inLibrary: false },
-];
+import { api, Game } from '@/lib/api';
+import { auth } from '@/lib/auth';
+import { useToast } from '@/hooks/use-toast';
 
 const Index = () => {
-  const [games, setGames] = useState<Game[]>(mockGames);
+  const navigate = useNavigate();
+  const { toast } = useToast();
+  const [games, setGames] = useState<Game[]>([]);
+  const [libraryGames, setLibraryGames] = useState<number[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedPlatform, setSelectedPlatform] = useState<'All' | 'PC' | 'Mobile' | 'VR'>('All');
   const [activeTab, setActiveTab] = useState('catalog');
+  const [loading, setLoading] = useState(true);
+  const user = auth.getUser();
 
-  const toggleLibrary = (gameId: number) => {
-    setGames(games.map(game => 
-      game.id === gameId ? { ...game, inLibrary: !game.inLibrary } : game
-    ));
+  useEffect(() => {
+    loadGames();
+    if (auth.isAuthenticated()) {
+      loadLibrary();
+    }
+  }, []);
+
+  const loadGames = async () => {
+    try {
+      const data = await api.getCatalog();
+      setGames(data);
+    } catch (error) {
+      toast({
+        title: 'Ошибка',
+        description: 'Не удалось загрузить каталог игр',
+        variant: 'destructive',
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadLibrary = async () => {
+    const token = auth.getToken();
+    if (!token) return;
+
+    try {
+      const data = await api.getLibrary(token);
+      setLibraryGames(data.map(g => g.id));
+    } catch (error) {
+      console.error('Failed to load library:', error);
+    }
+  };
+
+  const toggleLibrary = async (gameId: number) => {
+    const token = auth.getToken();
+    if (!token) {
+      toast({
+        title: 'Требуется авторизация',
+        description: 'Войдите в аккаунт, чтобы добавить игру в библиотеку',
+      });
+      navigate('/auth');
+      return;
+    }
+
+    try {
+      if (libraryGames.includes(gameId)) {
+        await api.removeFromLibrary(token, gameId);
+        setLibraryGames(libraryGames.filter(id => id !== gameId));
+        toast({
+          title: 'Удалено',
+          description: 'Игра удалена из библиотеки',
+        });
+      } else {
+        await api.addToLibrary(token, gameId);
+        setLibraryGames([...libraryGames, gameId]);
+        toast({
+          title: 'Добавлено',
+          description: 'Игра добавлена в библиотеку',
+        });
+      }
+    } catch (error) {
+      toast({
+        title: 'Ошибка',
+        description: error instanceof Error ? error.message : 'Произошла ошибка',
+        variant: 'destructive',
+      });
+    }
   };
 
   const filteredGames = games.filter(game => {
     const matchesSearch = game.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
                          game.genre.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesPlatform = selectedPlatform === 'All' || game.platform === selectedPlatform;
-    const matchesTab = activeTab === 'catalog' || (activeTab === 'library' && game.inLibrary);
+    const matchesTab = activeTab === 'catalog' || (activeTab === 'library' && libraryGames.includes(game.id));
     return matchesSearch && matchesPlatform && matchesTab;
   });
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Icon name="Loader2" size={48} className="animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -61,11 +117,18 @@ const Index = () => {
                 GameHub
               </h1>
             </div>
-            <nav className="flex items-center gap-6">
-              <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground">
-                <Icon name="User" size={20} className="mr-2" />
-                Профиль
-              </Button>
+            <nav className="flex items-center gap-4">
+              {user ? (
+                <Button variant="ghost" size="sm" onClick={() => navigate('/profile')} className="text-muted-foreground hover:text-foreground">
+                  <Icon name="User" size={20} className="mr-2" />
+                  {user.username}
+                </Button>
+              ) : (
+                <Button variant="default" size="sm" onClick={() => navigate('/auth')}>
+                  <Icon name="LogIn" size={20} className="mr-2" />
+                  Войти
+                </Button>
+              )}
             </nav>
           </div>
         </div>
@@ -118,21 +181,25 @@ const Index = () => {
                 <div
                   key={game.id}
                   className="group bg-card rounded-xl overflow-hidden border border-border hover-glow hover-scale cursor-pointer animate-scale-in"
+                  onClick={() => navigate(`/game/${game.id}`)}
                 >
                   <div className="relative aspect-[3/4] overflow-hidden">
                     <img
-                      src={game.image}
+                      src={game.image_url}
                       alt={game.title}
                       className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                     <Button
                       size="sm"
-                      variant={game.inLibrary ? 'secondary' : 'default'}
-                      onClick={() => toggleLibrary(game.id)}
+                      variant={libraryGames.includes(game.id) ? 'secondary' : 'default'}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        toggleLibrary(game.id);
+                      }}
                       className="absolute bottom-4 right-4 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-y-2 group-hover:translate-y-0"
                     >
-                      {game.inLibrary ? (
+                      {libraryGames.includes(game.id) ? (
                         <>
                           <Icon name="Check" size={16} className="mr-1" />
                           В библиотеке
@@ -171,7 +238,16 @@ const Index = () => {
           </TabsContent>
 
           <TabsContent value="library" className="animate-fade-in">
-            {games.filter(g => g.inLibrary).length === 0 ? (
+            {!auth.isAuthenticated() ? (
+              <div className="text-center py-20">
+                <Icon name="Library" size={64} className="mx-auto text-muted-foreground mb-4" />
+                <p className="text-xl text-muted-foreground mb-4">Войдите, чтобы увидеть свою библиотеку</p>
+                <Button onClick={() => navigate('/auth')}>
+                  <Icon name="LogIn" size={20} className="mr-2" />
+                  Войти
+                </Button>
+              </div>
+            ) : libraryGames.length === 0 ? (
               <div className="text-center py-20">
                 <Icon name="Library" size={64} className="mx-auto text-muted-foreground mb-4" />
                 <p className="text-xl text-muted-foreground mb-2">Ваша библиотека пуста</p>
@@ -183,10 +259,11 @@ const Index = () => {
                   <div
                     key={game.id}
                     className="group bg-card rounded-xl overflow-hidden border border-border hover-glow hover-scale cursor-pointer animate-scale-in"
+                    onClick={() => navigate(`/game/${game.id}`)}
                   >
                     <div className="relative aspect-[3/4] overflow-hidden">
                       <img
-                        src={game.image}
+                        src={game.image_url}
                         alt={game.title}
                         className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                       />
@@ -194,7 +271,10 @@ const Index = () => {
                       <Button
                         size="sm"
                         variant="destructive"
-                        onClick={() => toggleLibrary(game.id)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          toggleLibrary(game.id);
+                        }}
                         className="absolute bottom-4 right-4 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-y-2 group-hover:translate-y-0"
                       >
                         <Icon name="Trash2" size={16} className="mr-1" />
@@ -274,8 +354,8 @@ const Index = () => {
                 <h3 className="font-semibold mb-4">О приложении</h3>
                 <div className="space-y-2 text-sm text-muted-foreground">
                   <p>Версия: 1.0.0</p>
-                  <p>Каталог игр: {mockGames.length} игр</p>
-                  <p>В библиотеке: {games.filter(g => g.inLibrary).length} игр</p>
+                  <p>Каталог игр: {games.length} игр</p>
+                  {auth.isAuthenticated() && <p>В библиотеке: {libraryGames.length} игр</p>}
                 </div>
               </div>
             </div>
