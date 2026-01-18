@@ -1,11 +1,286 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+import { useState } from 'react';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import Icon from '@/components/ui/icon';
+
+interface Game {
+  id: number;
+  title: string;
+  platform: 'PC' | 'Mobile' | 'VR';
+  genre: string;
+  image: string;
+  rating: number;
+  inLibrary: boolean;
+}
+
+const mockGames: Game[] = [
+  { id: 1, title: 'Cyberpunk 2077', platform: 'PC', genre: 'RPG', image: 'https://via.placeholder.com/300x400/9b87f5/ffffff?text=Cyberpunk+2077', rating: 4.5, inLibrary: false },
+  { id: 2, title: 'Elden Ring', platform: 'PC', genre: 'Action RPG', image: 'https://via.placeholder.com/300x400/7E69AB/ffffff?text=Elden+Ring', rating: 4.8, inLibrary: false },
+  { id: 3, title: 'God of War', platform: 'PC', genre: 'Action', image: 'https://via.placeholder.com/300x400/9b87f5/ffffff?text=God+of+War', rating: 4.9, inLibrary: true },
+  { id: 4, title: 'The Witcher 3', platform: 'PC', genre: 'RPG', image: 'https://via.placeholder.com/300x400/6E59A5/ffffff?text=The+Witcher+3', rating: 4.9, inLibrary: false },
+  { id: 5, title: 'Red Dead Redemption 2', platform: 'PC', genre: 'Action', image: 'https://via.placeholder.com/300x400/9b87f5/ffffff?text=RDR+2', rating: 4.8, inLibrary: false },
+  { id: 6, title: 'Half-Life: Alyx', platform: 'VR', genre: 'Action', image: 'https://via.placeholder.com/300x400/7E69AB/ffffff?text=Half-Life+Alyx', rating: 4.9, inLibrary: false },
+  { id: 7, title: 'Beat Saber', platform: 'VR', genre: 'Rhythm', image: 'https://via.placeholder.com/300x400/9b87f5/ffffff?text=Beat+Saber', rating: 4.7, inLibrary: true },
+  { id: 8, title: 'PUBG Mobile', platform: 'Mobile', genre: 'Battle Royale', image: 'https://via.placeholder.com/300x400/6E59A5/ffffff?text=PUBG+Mobile', rating: 4.3, inLibrary: false },
+  { id: 9, title: 'Genshin Impact', platform: 'Mobile', genre: 'RPG', image: 'https://via.placeholder.com/300x400/9b87f5/ffffff?text=Genshin+Impact', rating: 4.5, inLibrary: false },
+  { id: 10, title: 'Minecraft', platform: 'PC', genre: 'Sandbox', image: 'https://via.placeholder.com/300x400/7E69AB/ffffff?text=Minecraft', rating: 4.8, inLibrary: true },
+  { id: 11, title: 'Among Us', platform: 'Mobile', genre: 'Party', image: 'https://via.placeholder.com/300x400/6E59A5/ffffff?text=Among+Us', rating: 4.4, inLibrary: false },
+  { id: 12, title: 'Resident Evil 4 VR', platform: 'VR', genre: 'Horror', image: 'https://via.placeholder.com/300x400/9b87f5/ffffff?text=RE4+VR', rating: 4.6, inLibrary: false },
+];
 
 const Index = () => {
+  const [games, setGames] = useState<Game[]>(mockGames);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedPlatform, setSelectedPlatform] = useState<'All' | 'PC' | 'Mobile' | 'VR'>('All');
+  const [activeTab, setActiveTab] = useState('catalog');
+
+  const toggleLibrary = (gameId: number) => {
+    setGames(games.map(game => 
+      game.id === gameId ? { ...game, inLibrary: !game.inLibrary } : game
+    ));
+  };
+
+  const filteredGames = games.filter(game => {
+    const matchesSearch = game.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                         game.genre.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesPlatform = selectedPlatform === 'All' || game.platform === selectedPlatform;
+    const matchesTab = activeTab === 'catalog' || (activeTab === 'library' && game.inLibrary);
+    return matchesSearch && matchesPlatform && matchesTab;
+  });
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
-      <div className="text-center">
-        <h1 className="text-4xl font-bold mb-4 color-black text-black">Добро пожаловать!</h1>
-        <p className="text-xl text-gray-600">тут будет отображаться ваш проект</p>
+    <div className="min-h-screen bg-background">
+      <header className="border-b border-border/50 backdrop-blur-sm sticky top-0 z-50 bg-background/80">
+        <div className="container mx-auto px-6 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Icon name="Gamepad2" size={32} className="text-primary" />
+              <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-purple-400 bg-clip-text text-transparent">
+                GameHub
+              </h1>
+            </div>
+            <nav className="flex items-center gap-6">
+              <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground">
+                <Icon name="User" size={20} className="mr-2" />
+                Профиль
+              </Button>
+            </nav>
+          </div>
+        </div>
+      </header>
+
+      <div className="container mx-auto px-6 py-8">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-8">
+          <TabsList className="bg-card border border-border">
+            <TabsTrigger value="catalog" className="data-[state=active]:bg-primary data-[state=active]:text-white">
+              <Icon name="Grid3x3" size={18} className="mr-2" />
+              Каталог
+            </TabsTrigger>
+            <TabsTrigger value="library" className="data-[state=active]:bg-primary data-[state=active]:text-white">
+              <Icon name="Library" size={18} className="mr-2" />
+              Библиотека
+            </TabsTrigger>
+            <TabsTrigger value="settings" className="data-[state=active]:bg-primary data-[state=active]:text-white">
+              <Icon name="Settings" size={18} className="mr-2" />
+              Настройки
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="catalog" className="space-y-6 animate-fade-in">
+            <div className="flex flex-col md:flex-row gap-4">
+              <div className="relative flex-1">
+                <Icon name="Search" size={20} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  placeholder="Поиск игр..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-10 bg-card border-border"
+                />
+              </div>
+              <div className="flex gap-2">
+                {(['All', 'PC', 'Mobile', 'VR'] as const).map((platform) => (
+                  <Button
+                    key={platform}
+                    variant={selectedPlatform === platform ? 'default' : 'outline'}
+                    onClick={() => setSelectedPlatform(platform)}
+                    className={selectedPlatform === platform ? 'bg-primary hover:bg-primary/90' : ''}
+                  >
+                    {platform === 'All' ? 'Все' : platform}
+                  </Button>
+                ))}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+              {filteredGames.map((game) => (
+                <div
+                  key={game.id}
+                  className="group bg-card rounded-xl overflow-hidden border border-border hover-glow hover-scale cursor-pointer animate-scale-in"
+                >
+                  <div className="relative aspect-[3/4] overflow-hidden">
+                    <img
+                      src={game.image}
+                      alt={game.title}
+                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                    <Button
+                      size="sm"
+                      variant={game.inLibrary ? 'secondary' : 'default'}
+                      onClick={() => toggleLibrary(game.id)}
+                      className="absolute bottom-4 right-4 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-y-2 group-hover:translate-y-0"
+                    >
+                      {game.inLibrary ? (
+                        <>
+                          <Icon name="Check" size={16} className="mr-1" />
+                          В библиотеке
+                        </>
+                      ) : (
+                        <>
+                          <Icon name="Plus" size={16} className="mr-1" />
+                          Добавить
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                  <div className="p-4 space-y-2">
+                    <h3 className="font-semibold text-lg truncate">{game.title}</h3>
+                    <div className="flex items-center justify-between">
+                      <Badge variant="secondary" className="text-xs">
+                        {game.platform}
+                      </Badge>
+                      <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                        <Icon name="Star" size={14} className="fill-yellow-400 text-yellow-400" />
+                        {game.rating}
+                      </div>
+                    </div>
+                    <p className="text-sm text-muted-foreground">{game.genre}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {filteredGames.length === 0 && (
+              <div className="text-center py-20 animate-fade-in">
+                <Icon name="Search" size={64} className="mx-auto text-muted-foreground mb-4" />
+                <p className="text-xl text-muted-foreground">Игры не найдены</p>
+              </div>
+            )}
+          </TabsContent>
+
+          <TabsContent value="library" className="animate-fade-in">
+            {games.filter(g => g.inLibrary).length === 0 ? (
+              <div className="text-center py-20">
+                <Icon name="Library" size={64} className="mx-auto text-muted-foreground mb-4" />
+                <p className="text-xl text-muted-foreground mb-2">Ваша библиотека пуста</p>
+                <p className="text-sm text-muted-foreground">Добавьте игры из каталога</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                {filteredGames.map((game) => (
+                  <div
+                    key={game.id}
+                    className="group bg-card rounded-xl overflow-hidden border border-border hover-glow hover-scale cursor-pointer animate-scale-in"
+                  >
+                    <div className="relative aspect-[3/4] overflow-hidden">
+                      <img
+                        src={game.image}
+                        alt={game.title}
+                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        onClick={() => toggleLibrary(game.id)}
+                        className="absolute bottom-4 right-4 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-y-2 group-hover:translate-y-0"
+                      >
+                        <Icon name="Trash2" size={16} className="mr-1" />
+                        Удалить
+                      </Button>
+                    </div>
+                    <div className="p-4 space-y-2">
+                      <h3 className="font-semibold text-lg truncate">{game.title}</h3>
+                      <div className="flex items-center justify-between">
+                        <Badge variant="secondary" className="text-xs">
+                          {game.platform}
+                        </Badge>
+                        <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                          <Icon name="Star" size={14} className="fill-yellow-400 text-yellow-400" />
+                          {game.rating}
+                        </div>
+                      </div>
+                      <p className="text-sm text-muted-foreground">{game.genre}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </TabsContent>
+
+          <TabsContent value="settings" className="animate-fade-in">
+            <div className="max-w-2xl mx-auto space-y-6">
+              <div className="bg-card rounded-xl p-6 border border-border space-y-6">
+                <div>
+                  <h2 className="text-2xl font-bold mb-6">Настройки</h2>
+                </div>
+
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between py-4 border-b border-border">
+                    <div>
+                      <h3 className="font-semibold">Уведомления</h3>
+                      <p className="text-sm text-muted-foreground">Получать уведомления о новых играх</p>
+                    </div>
+                    <Button variant="outline" size="sm">
+                      <Icon name="Bell" size={18} />
+                    </Button>
+                  </div>
+
+                  <div className="flex items-center justify-between py-4 border-b border-border">
+                    <div>
+                      <h3 className="font-semibold">Язык</h3>
+                      <p className="text-sm text-muted-foreground">Русский</p>
+                    </div>
+                    <Button variant="outline" size="sm">
+                      <Icon name="Globe" size={18} />
+                    </Button>
+                  </div>
+
+                  <div className="flex items-center justify-between py-4 border-b border-border">
+                    <div>
+                      <h3 className="font-semibold">Тема</h3>
+                      <p className="text-sm text-muted-foreground">Темная</p>
+                    </div>
+                    <Button variant="outline" size="sm">
+                      <Icon name="Moon" size={18} />
+                    </Button>
+                  </div>
+
+                  <div className="flex items-center justify-between py-4">
+                    <div>
+                      <h3 className="font-semibold">Очистить кэш</h3>
+                      <p className="text-sm text-muted-foreground">Удалить временные файлы</p>
+                    </div>
+                    <Button variant="outline" size="sm">
+                      <Icon name="Trash2" size={18} />
+                    </Button>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-card rounded-xl p-6 border border-border">
+                <h3 className="font-semibold mb-4">О приложении</h3>
+                <div className="space-y-2 text-sm text-muted-foreground">
+                  <p>Версия: 1.0.0</p>
+                  <p>Каталог игр: {mockGames.length} игр</p>
+                  <p>В библиотеке: {games.filter(g => g.inLibrary).length} игр</p>
+                </div>
+              </div>
+            </div>
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
   );
