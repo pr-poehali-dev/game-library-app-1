@@ -9,6 +9,7 @@ import NotFound from "./pages/NotFound";
 import GameDetail from "./pages/GameDetail";
 import Auth from "./pages/Auth";
 import Profile from "./pages/Profile";
+import AdminSync from "./pages/AdminSync";
 
 const queryClient = new QueryClient();
 
@@ -23,6 +24,7 @@ const App = () => (
           <Route path="/game/:id" element={<GameDetail />} />
           <Route path="/auth" element={<Auth />} />
           <Route path="/profile" element={<Profile />} />
+          <Route path="/admin/sync" element={<AdminSync />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

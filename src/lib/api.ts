@@ -1,5 +1,6 @@
 const AUTH_API = 'https://functions.poehali.dev/b53250f7-f9a4-4d8e-89bd-ecce19aef1fb';
 const GAMES_API = 'https://functions.poehali.dev/91af6857-eac0-4d77-8518-f9cb1866501c';
+const RAWG_SYNC_API = 'https://functions.poehali.dev/774202ab-1086-40ef-ae23-3e25d6596d92';
 
 export interface User {
   id: number;
@@ -144,5 +145,30 @@ export const api = {
     if (!response.ok) {
       throw new Error('Ошибка удаления из библиотеки');
     }
+  },
+
+  async syncGamesFromRAWG(page: number = 1, pageSize: number = 40): Promise<any> {
+    const response = await fetch(RAWG_SYNC_API, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'sync', page, page_size: pageSize }),
+    });
+    
+    if (!response.ok) {
+      throw new Error('Ошибка синхронизации игр');
+    }
+    
+    return response.json();
+  },
+
+  async getRAWGSyncStatus(): Promise<{ total_games: number; synced_from_rawg: number }> {
+    const params = new URLSearchParams({ action: 'status' });
+    const response = await fetch(`${RAWG_SYNC_API}?${params}`);
+    
+    if (!response.ok) {
+      throw new Error('Ошибка получения статуса синхронизации');
+    }
+    
+    return response.json();
   },
 };

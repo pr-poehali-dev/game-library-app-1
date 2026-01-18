@@ -1,0 +1,32 @@
+{
+  "tests": [
+    {
+      "name": "Check sync status",
+      "method": "GET",
+      "path": "/?action=status",
+      "expectedStatus": 200,
+      "expectedBody": {
+        "total_games": "number",
+        "synced_from_rawg": "number"
+      },
+      "bodyMatcher": "partial"
+    },
+    {
+      "name": "Sync games from RAWG",
+      "method": "POST",
+      "path": "/",
+      "body": {
+        "action": "sync",
+        "page": 1,
+        "page_size": 20
+      },
+      "expectedStatus": 200,
+      "expectedBody": {
+        "success": true,
+        "page": 1,
+        "added": "number"
+      },
+      "bodyMatcher": "partial"
+    }
+  ]
+}

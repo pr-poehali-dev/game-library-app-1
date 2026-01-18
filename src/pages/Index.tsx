@@ -350,6 +350,18 @@ const Index = () => {
                 </div>
               </div>
 
+              <div className="bg-card rounded-xl p-6 border border-border space-y-4">
+                <h3 className="font-semibold mb-4">Администрирование</h3>
+                <Button 
+                  variant="outline" 
+                  className="w-full justify-start"
+                  onClick={() => navigate('/admin/sync')}
+                >
+                  <Icon name="Database" size={18} className="mr-2" />
+                  Синхронизация игр из RAWG
+                </Button>
+              </div>
+
               <div className="bg-card rounded-xl p-6 border border-border">
                 <h3 className="font-semibold mb-4">О приложении</h3>
                 <div className="space-y-2 text-sm text-muted-foreground">
